@@ -48,6 +48,8 @@ table.d th{color:var(--muted);font-weight:500}
 .tb{font-size:12px}
 .tb th,.tb td{padding:2px 4px;white-space:nowrap}
 .tb td.l{text-align:left}
+.tb.wr td{white-space:normal;text-align:left;vertical-align:top;line-height:1.6}
+.tb.wr td:first-child{white-space:nowrap;width:2.5em}
 .sm{font-size:13px;color:var(--muted);margin:6px 0 0}
 .ctx details>summary{cursor:pointer;color:var(--accent)}
 .figs{margin:0 0 12px}
@@ -122,9 +124,10 @@ table.fs small.fix{display:block;color:var(--ng);font-size:12px;text-align:right
   <div class="jsoff" id="jserr" hidden></div>
   <header><h1>R8簿記演習</h1><span class="chip" id="today">今日 <b>0</b>問</span></header>
   <div class="stats">
-    <span class="chip">習得 <b id="mastered">0</b> / <b id="total">0</b></span>
+    <span class="chip">達成 <b id="mastered">0</b> / <b id="total">0</b>問題</span>
+    <span class="chip">達成率 <b id="prate">0%</b></span>
     <span class="chip">正答率 <b id="rate">-</b></span>
-    <span class="chip">要復習 <b id="wrongN">0</b></span>
+    <span class="chip">要復習 <b id="wrongN">0</b>問題</span>
   </div>
   <div class="bar" aria-hidden="true"><i id="prog"></i></div>
   <div class="modes" role="group" aria-label="出題モード">
@@ -572,11 +575,10 @@ exp:"貸倒引当金 70,000 × 2% = 1,400、80,000 × 2% = 1,600\n減価償却�
 );}
 
 {const C=cx(pp("コール・オプションに係る各取引について、甲社(買手)と乙社(売手)の仕訳を示す(会計期間1年、決算日3月31日、単位:千円)。"),
-tb(["","甲社(買手)","乙社(売手)"],[
-["(1)","X1年2月1日、債券相場の上昇を見込み、国債先物の相場が@95円の時点で、行使価格@97円の国債先物のコール・オプション額面200,000千円(2,000千口)を買い建て、額面100円(1口)につきオプション料0.75円を現金で支払った。","X1年2月1日、債券相場の下落を見込み、国債先物の相場が@95円の時点で、行使価格@97円の国債先物のコール・オプション額面200,000千円(2,000千口)を売り建て、額面100円(1口)につきオプション料0.75円を現金で受領した。なお、委託証拠金6,000千円を証券会社に現金で差し入れた。"],
-["(2)","X1年3月31日、国債先物の価格が@95円、コール・オプション価格が@0.95円となった。","同左"],
-["(3)","X1年4月1日、翌期首において評価差額について振り戻す処理を行った。","同左"],
-["(4)","X1年4月30日に国債先物が@98円、コール・オプション価格が@1.05円となったため、コール・オプションを反対売買により転売し、現金を受領した。","X1年4月30日に国債先物が@98円、コール・オプション価格が@1.05円の時点で、コール・オプションを反対売買により買い戻し、現金を支払った。"]]));
+pp("<b>甲社(買手)</b>"),
+tb(null,[["(1)","X1年2月1日、債券相場の上昇を見込み、国債先物の相場が@95円の時点で、行使価格@97円の国債先物のコール・オプション額面200,000千円(2,000千口)を買い建て、額面100円(1口)につきオプション料0.75円を現金で支払った。"],["(2)","X1年3月31日、国債先物の価格が@95円、コール・オプション価格が@0.95円となった。"],["(3)","X1年4月1日、翌期首において評価差額について振り戻す処理を行った。"],["(4)","X1年4月30日に国債先物が@98円、コール・オプション価格が@1.05円となったため、コール・オプションを反対売買により転売し、現金を受領した。"]],"wr"),
+pp("<b>乙社(売手)</b>"),
+tb(null,[["(1)","X1年2月1日、債券相場の下落を見込み、国債先物の相場が@95円の時点で、行使価格@97円の国債先物のコール・オプション額面200,000千円(2,000千口)を売り建て、額面100円(1口)につきオプション料0.75円を現金で受領した。なお、委託証拠金6,000千円を証券会社に現金で差し入れた。"],["(2)","X1年3月31日、国債先物の価格が@95円、コール・オプション価格が@0.95円となった。"],["(3)","X1年4月1日、翌期首において評価差額について振り戻す処理を行った。"],["(4)","X1年4月30日に国債先物が@98円、コール・オプション価格が@1.05円の時点で、コール・オプションを反対売買により買い戻し、現金を支払った。"]],"wr"));
 const S="簿記2 演習問題18-2",G="デリバティブ(オプション)",AL={"委託証拠金":"オプション取引差入証拠金","差入証拠金":"オプション取引差入証拠金"},J=(id,q,dr,cr,exp)=>({id,src:S,tag:G,type:"jnl",al:AL,ctx:C,q,dr,cr,exp});
 Q.push(
 J("18-2-1","甲社(1) オプションの買い建ての仕訳は。",[["オプション資産",1500]],[["現金",1500]],"0.75円 × 2,000千口 = 1,500千円"),
@@ -838,14 +840,20 @@ function norm(s){return s.replace(/[０-９]/g,c=>String.fromCharCode(c.charCode
 
 /* ---- 表示 ---- */
 const $=id=>document.getElementById(id);
+/* 問題番号ごとの達成率 = 最後の解答が正解だった小問の割合 */
+const lastOk=q=>{const s=mem.q[q.id];return !!s&&s.r+s.w>0&&!s.lw};
+const gpct=qs=>qs.filter(lastOk).length/qs.length;
 function stats(){
-  const done=Q.filter(q=>mem.q[q.id]&&mem.q[q.id].s>=2).length;
+  const gs=groups();
+  const done=gs.filter(([g,qs])=>gpct(qs)===1).length;
   let r=0,w=0;Q.forEach(q=>{const s=mem.q[q.id];if(s){r+=s.r;w+=s.w}});
-  $("mastered").textContent=done;$("total").textContent=Q.length;
+  $("mastered").textContent=done;$("total").textContent=gs.length;
+  const avg=gs.reduce((t,[g,qs])=>t+gpct(qs),0)/gs.length;
+  $("prate").textContent=Math.round(avg*100)+"%";
   $("rate").textContent=(r+w)?Math.round(r/(r+w)*100)+"%":"-";
-  const wn=Q.filter(q=>st(q.id).lw).length;$("wrongN").textContent=wn;
+  const wn=gs.filter(([g,qs])=>qs.some(q=>st(q.id).lw)).length;$("wrongN").textContent=wn;
   $("mWrong").disabled=wn===0&&mode!=="wrong";
-  $("prog").style.width=(done/Q.length*100)+"%";
+  $("prog").style.width=(avg*100)+"%";
   $("today").innerHTML="今日 <b>"+(mem.days[today()]||0)+"</b>問";
 }
 function esc(s){return s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
@@ -857,10 +865,11 @@ function showList(){
   const tags=["すべて",...new Set(Q.map(q=>q.tag))];
   const gs=groups().filter(([g,qs])=>tagF==="すべて"||qs[0].tag===tagF);
   const badge=qs=>{
-    const seen=qs.filter(q=>{const s=mem.q[q.id];return s&&s.r+s.w>0}).length;
-    if(qs.some(q=>st(q.id).lw))return `<span class="badge ng">要復習</span>`;
-    if(qs.every(q=>st(q.id).s>=2))return `<span class="badge ok">習得</span>`;
-    return `<span class="badge">${seen}/${qs.length}</span>`};
+    const seen=qs.filter(q=>{const s=mem.q[q.id];return s&&s.r+s.w>0}).length,p=Math.round(gpct(qs)*100);
+    if(!seen)return `<span class="badge">未</span>`;
+    if(p===100)return `<span class="badge ok">達成 100%</span>`;
+    if(qs.some(q=>st(q.id).lw))return `<span class="badge ng">要復習 ${p}%</span>`;
+    return `<span class="badge">${p}%</span>`};
   $("card").innerHTML=`<div class="flt" role="group" aria-label="分野">${tags.map(g=>`<button type="button" data-g="${g}" aria-pressed="${g===tagF}">${g}</button>`).join("")}</div>
   <ul class="lst">${gs.map(([g,qs])=>`<li><button type="button" data-g="${g}"><span class="t">演習問題 ${g}<small>${esc(qs[0].src.split(" ")[0])}・${qs[0].tag}・小問${qs.length}</small></span>${badge(qs)}</button></li>`).join("")}</ul>`;
   $("card").querySelectorAll(".flt button").forEach(b=>b.onclick=()=>{tagF=b.dataset.g;showList()});
