@@ -62,7 +62,7 @@ input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px 
 .side{margin:10px 0 4px;font-weight:700;font-size:14px;color:var(--muted)}
 .jr{display:grid;grid-template-columns:1fr 104px;gap:8px;margin-bottom:8px}
 .jr input{font-size:16px;padding:10px 8px;text-align:left}
-.jr input[inputmode=decimal]{text-align:right}
+.jr input[data-num]{text-align:right}
 .opts{display:grid;gap:8px;margin:8px 0 12px}
 .opts button{text-align:left;padding:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;font:inherit}
 .opts button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
@@ -785,6 +785,10 @@ exp:"開始仕訳:土地10,000/評価差額10,000、資本金300,000・利益剰
 );
 }
 
+/* 数字欄のキーボード指定(inputmode)はスマホなどタッチ操作の端末だけに付ける。
+   PCのChrome/Edgeでは、この指定で日本語入力が半角英数に切り替わるため */
+const TOUCH=(()=>{try{return matchMedia("(pointer: coarse)").matches}catch(e){return false}})();
+const NUMATTR=TOUCH?'data-num inputmode="decimal"':'data-num';
 /* ---- 数字の入力欄: 入力中に3桁ごとのカンマを付ける ---- */
 function withComma(s){
   s=s.replace(/[０-９．]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248));
@@ -796,7 +800,7 @@ function withComma(s){
   return sign+ip+dp;
 }
 document.addEventListener("input",e=>{
-  const el=e.target;if(!el.matches||!el.matches('input[inputmode="decimal"]')||e.isComposing)return;
+  const el=e.target;if(!el.matches||!el.matches('input[data-num]')||e.isComposing)return;
   const v=el.value,pos=el.selectionStart==null?v.length:el.selectionStart;
   const right=v.slice(pos).replace(/[^\d.０-９．]/g,"").length;   /* カーソルより右の数字の数を保つ */
   const nv=withComma(v);if(nv===v)return;
@@ -804,7 +808,7 @@ document.addEventListener("input",e=>{
   let p=nv.length,c=0;while(p>0&&c<right){p--;if(/[\d.]/.test(nv[p]))c++}
   try{el.setSelectionRange(p,p)}catch(err){}
 });
-document.addEventListener("compositionend",e=>{const el=e.target;if(el.matches&&el.matches('input[inputmode="decimal"]'))el.value=withComma(el.value)});
+document.addEventListener("compositionend",e=>{const el=e.target;if(el.matches&&el.matches('input[data-num]'))el.value=withComma(el.value)});
 /* ---- 記録 ---- */
 let mem={};
 const KEY="boki-sukima-v1";
@@ -892,7 +896,7 @@ function fsH(q,k){
       h+="<tr>"+cs.map((c,ci)=>{
         const num=ci>0;
         if(c&&typeof c==="object"){const id=p+"c"+(j++);const isN=typeof c.a==="number";
-          const inp=`<input id="${id}" type="text" ${isN?'inputmode="decimal"':""} autocomplete="off" spellcheck="false" aria-label="${isN?"金額":"科目"}">`;
+          const inp=`<input id="${id}" type="text" ${isN?NUMATTR:""} autocomplete="off" spellcheck="false" aria-label="${isN?"金額":"科目"}">`;
           return `<td class="${isN||ci>0?"n":"l"}">${isN||ci>0?inp:`<span class="br">〔${inp}〕</span>`}<span id="${id}f"></span></td>`}
         return `<td class="${num?"n":"l"}">${c==null?"":c}</td>`}).join("")+"</tr>";
     });
@@ -902,14 +906,14 @@ function fsH(q,k){
 function inputH(q,k){
   const p="q"+k+"_";
   if(q.type==="fs")return fsH(q,k);
-  if(q.type==="num")return `<div class="ans"><input id="${p}in" type="text" inputmode="decimal" autocomplete="off" aria-label="小問${k+1}の答え" placeholder="答えを入力"><span class="unit">${q.unit}</span></div>`;
+  if(q.type==="num")return `<div class="ans"><input id="${p}in" type="text" ${NUMATTR} autocomplete="off" aria-label="小問${k+1}の答え" placeholder="答えを入力"><span class="unit">${q.unit}</span></div>`;
   if(q.type==="choice")return `<div class="opts" data-k="${k}">${q.opts.map((o,i)=>`<button type="button" data-i="${i}" aria-pressed="false">${o}</button>`).join("")}</div>`;
   if(q.type==="text")return `<div class="ans"><input id="${p}in" type="text" autocomplete="off" spellcheck="false" aria-label="小問${k+1}の答え" placeholder="語句を入力" style="text-align:left"></div>`;
   const n=Math.max(2,q.dr.length,q.cr.length);
   let h=`<div class="side">借方</div>`;
-  for(let i=0;i<n;i++)h+=`<div class="jr">${acctSel(p+"d"+i)}<input id="${p}da${i}" type="text" inputmode="decimal" autocomplete="off" aria-label="借方金額" placeholder="金額"></div>`;
+  for(let i=0;i<n;i++)h+=`<div class="jr">${acctSel(p+"d"+i)}<input id="${p}da${i}" type="text" ${NUMATTR} autocomplete="off" aria-label="借方金額" placeholder="金額"></div>`;
   h+=`<div class="side">貸方</div>`;
-  for(let i=0;i<n;i++)h+=`<div class="jr">${acctSel(p+"c"+i)}<input id="${p}ca${i}" type="text" inputmode="decimal" autocomplete="off" aria-label="貸方金額" placeholder="金額"></div>`;
+  for(let i=0;i<n;i++)h+=`<div class="jr">${acctSel(p+"c"+i)}<input id="${p}ca${i}" type="text" ${NUMATTR} autocomplete="off" aria-label="貸方金額" placeholder="金額"></div>`;
   h+=`<label class="none"><input type="checkbox" id="${p}none"> 仕訳不要</label>`;
   return h;
 }
